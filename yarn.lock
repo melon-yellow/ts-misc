@@ -3249,6 +3249,14 @@ for-own@^0.1.4:
   dependencies:
     for-in "^1.0.1"
 
+foreach@jkroso/forEach#0.8.10:
+  version "0.8.10"
+  resolved "https://codeload.github.com/jkroso/forEach/tar.gz/4cb9c0a86ce73e16f49ba9f424369b569c7942e8"
+  dependencies:
+    lift-result "~0.1.4"
+    result "~1.0.1"
+    result-type "1.0.0"
+
 forever-agent@~0.6.1:
   version "0.6.1"
   resolved "https://registry.yarnpkg.com/forever-agent/-/forever-agent-0.6.1.tgz#fbc71f0c41adeb37f96c577ad1ed42d8fdacca91"
@@ -4800,6 +4808,13 @@ levn@~0.3.0:
     prelude-ls "~1.1.2"
     type-check "~0.3.2"
 
+lift-result@~0.1.4:
+  version "0.1.5"
+  resolved "https://registry.yarnpkg.com/lift-result/-/lift-result-0.1.5.tgz#a9883b249346fe31cc282d8559839189a66ab383"
+  integrity sha1-qYg7JJNG/jHMKC2FWYORiaZqs4M=
+  dependencies:
+    result "~1.0.2"
+
 lines-and-columns@^1.1.6:
   version "1.1.6"
   resolved "https://registry.yarnpkg.com/lines-and-columns/-/lines-and-columns-1.1.6.tgz#1c00c743b433cd0a4e80758f7b64a57440d9ff00"
@@ -5246,6 +5261,10 @@ negotiator@0.6.2:
   version "0.6.2"
   resolved "https://registry.yarnpkg.com/negotiator/-/negotiator-0.6.2.tgz#feacf7ccf525a77ae9634436a64883ffeca346fb"
   integrity sha512-hZXc7K2e+PgeI1eDBe/10Ard4ekbfrrqG8Ep+8Jmf4JID2bNg7NvCPOZN+kfF574pFQI7mum2AUqDidoKqcTOw==
+
+next-tick@timoxley/next-tick#0.0.2:
+  version "0.0.2"
+  resolved "https://codeload.github.com/timoxley/next-tick/tar.gz/6f25f8c2d25697dead7e49e978ae4c31703f7490"
 
 ngrok@*:
   version "4.0.1"
@@ -6315,6 +6334,27 @@ responselike@^2.0.0:
   dependencies:
     lowercase-keys "^2.0.0"
 
+result-core@1.2.1:
+  version "1.2.1"
+  resolved "https://registry.yarnpkg.com/result-core/-/result-core-1.2.1.tgz#dcfcab62cea11ed5aebe12941b23970c17be58ea"
+  integrity sha1-3PyrYs6hHtWuvhKUGyOXDBe+WOo=
+  dependencies:
+    next-tick timoxley/next-tick#0.0.2
+    result-type "1.0.0"
+
+result-type@1.0.0:
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/result-type/-/result-type-1.0.0.tgz#e4f1a5bf226c5c6b1f1450068763ed9f4fe69879"
+  integrity sha1-5PGlvyJsXGsfFFAGh2Ptn0/mmHk=
+
+result@~1.0.1, result@~1.0.2:
+  version "1.0.3"
+  resolved "https://registry.yarnpkg.com/result/-/result-1.0.3.tgz#a82fab4679068e3523bbe3eec8241453dcc5542e"
+  integrity sha1-qC+rRnkGjjUju+PuyCQUU9zFVC4=
+  dependencies:
+    result-core "1.2.1"
+    result-type "1.0.0"
+
 ret@~0.1.10:
   version "0.1.15"
   resolved "https://registry.yarnpkg.com/ret/-/ret-0.1.15.tgz#b8a4825d5bdb1fc3f6f53c2bc33f81388681c7bc"
@@ -6463,6 +6503,15 @@ ripemd160@^2.0.0, ripemd160@^2.0.1:
   dependencies:
     hash-base "^3.0.0"
     inherits "^2.0.1"
+
+rm-r@^1.0.2:
+  version "1.0.2"
+  resolved "https://registry.yarnpkg.com/rm-r/-/rm-r-1.0.2.tgz#4108d7f1398260a78deb0d745ca7c381c828f1a6"
+  integrity sha1-QQjX8TmCYKeN6w10XKfDgcgo8aY=
+  dependencies:
+    foreach jkroso/forEach#0.8.10
+    lift-result "~0.1.4"
+    result-type "1.0.0"
 
 rsvp@^4.8.4:
   version "4.8.5"
@@ -7323,10 +7372,10 @@ typedarray@^0.0.6, typedarray@~0.0.5:
   resolved "https://registry.yarnpkg.com/typedarray/-/typedarray-0.0.6.tgz#867ac74e3864187b1d3d47d996a78ec5c8830777"
   integrity sha1-hnrHTjhkGHsdPUfZlqeOxciDB3c=
 
-typescript@^4.1.3:
-  version "4.2.4"
-  resolved "https://registry.yarnpkg.com/typescript/-/typescript-4.2.4.tgz#8610b59747de028fda898a8aef0e103f156d0961"
-  integrity sha512-V+evlYHZnQkaz8TRBuxTA92yZBPotr5H+WhQ7bD3hZUndx5tGOa1fuCgeSjxAzM1RiN5IzvadIXTVefuuwZCRg==
+typescript@^4.1.5:
+  version "4.4.4"
+  resolved "https://registry.yarnpkg.com/typescript/-/typescript-4.4.4.tgz#2cd01a1a1f160704d3101fd5a58ff0f9fcb8030c"
+  integrity sha512-DqGhF5IKoBl8WNf8C1gu8q0xZSInh9j1kJJMqT3a94w1JzVaBU4EXOSMrz9yDqMT0xt3selp83fuFMQ0uzv6qA==
 
 uid-safe@~2.1.5:
   version "2.1.5"
