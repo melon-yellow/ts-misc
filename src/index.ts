@@ -15,6 +15,7 @@
 */
 
 // Imports
+import * as logging from './utils/logging.js'
 import * as numbers from './utils/numbers.js'
 import * as string from './utils/string.js'
 import * as handle from './utils/handle.js'
@@ -32,6 +33,7 @@ import * as sets from './utils/sets.js'
 // Miscellaneous Class
 export default class Miscellaneous {
   // Miscellaneous Set
+  logging = logging
   numbers = numbers
   string = string
   handle = handle
