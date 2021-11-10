@@ -210,7 +210,15 @@ export function has<
   K extends KeyOf = KeyOf,
   T extends Types = Types,
   O extends Extra = {},
->(obj: unknown, key: K | K[], typeName?: T | T[], _oref?: O): obj is Has<K, Type<T>, O> {
+>(
+  obj: {},
+  key: K | K[],
+  typeName?: T | T[],
+  _oref?: O
+): obj is Has<K, Type<T>, O> {
+  // Check Object
+  if (!guards.object(obj)) return false
+
   // Set Check Function
   const checkType = <K extends KeyOf>(
     o: unknown,
@@ -220,8 +228,8 @@ export function has<
   }
 
   // Perform Key Check
-  const checkKey = (o: unknown, k: KeyOf): o is Has<K, TypeOf<T>, O> => {
-    if (!guards.object(o)) return false
+  const checkKey = (o: {}, k: KeyOf): o is Has<K, TypeOf<T>, O> => {
+    if (o[k] === undefined) return false
     if (k in o) return checkType(o, k)
     if (Object.prototype.hasOwnProperty.call(o, k)) return checkType(o, k)
     if (guards.string(k) && Object.keys(o).includes(k)) {
