@@ -19,13 +19,13 @@ import type {
   UpstreamGuard,
   Callable,
   Class,
-  Extra,
+  Set,
   Has,
   KeyOf,
   ArgOf,
   TypeOf,
   Type,
-  GuardOf
+  TypeFromGuard
 } from './types.js'
 
 /*
@@ -37,7 +37,7 @@ import type {
 // General Make Type-Guard
 export function extend<T, O = unknown>(
   obj: unknown
-): obj is As<T extends Extra ? (O extends Extra ? And<O & T> : O & T) : O & T> {
+): obj is As<T extends {} ? (O extends {} ? And<O & T> : O & T) : O & T> {
   return true
 }
 
@@ -154,41 +154,55 @@ export function isType<T extends Types>(
 */
 
 // Type-Guard Proxy-Function Generator
-function _setGuardCircularReference<
+function setGuardCircularReference<
   G extends TypeGuard<Type, []>
->(_func: G) {
-  return new Proxy(_func, {
+>(guard: G) {
+  return new Proxy(guard, {
     get (target, p) {
-      if (p === 'or') {
-        // Check Target Type
-        if (!guards.function(target)) return
-        // Return Recursive Proxy
-        return new Proxy(
-          {} as SuperGuards,
-          _getUpstreamGuardHandler(target)
-        )
-      } else return target[p]
+      // Check Target Type
+      if (!guards.function(target)) return
+      // Or Clause
+      if (p === 'or') return new Proxy(
+        {} as SuperGuards,
+        getUpstreamGuardHandler(target)
+      )
+      // Else
+      return target[p]
     }
-  }) as G & SuperGuard<TypeOf<GuardOf<G>>>
+  }) as G & SuperGuard<TypeOf<TypeFromGuard<G>>>
 }
 
 // Type-Guards Proxy-Handler Generator
-function _getUpstreamGuardHandler<
-  G extends TypeGuard<Type, []>
->(_dnstr: G): ProxyHandler<SuperGuards> {
+function getUpstreamGuardHandler<T>(
+  dnstr: TypeGuard<T, []>
+): ProxyHandler<SuperGuards> {
+  // Set Gule Method
+  const glue = <UT>(guard: TypeGuard<UT>) => {
+    return (o => dnstr(o) || guard(o)) as TypeGuard<
+      TypeFromGuard<typeof dnstr> | TypeFromGuard<typeof guard>,
+      []
+    >
+  }
+  // Return Proxy Handler
   return {
+    // Or Call
+    apply<UT>(_target, _thisArg, args: [TypeGuard<UT>]) {
+      if (args.length != 1) throw new Error('invalid arguments')
+      const [guard] = args
+      if (!guards.function(guard)) throw new Error('invalid arguments')
+      const upstr = glue(guard)
+      return setGuardCircularReference(upstr)
+    },
+    // Or Get
     get<P extends string | symbol>(
       _target, p: P
-    ): P extends Types ? UpstreamGuard<P, G, true> : null {
+    ): P extends Types ? SuperGuard<Type<P> | T> : null {
       // Check if property exists
       if (!guards.typeof(p)) return
-      // Get Fixed Parameters
-      const _guard = guards[p]
       // Set Recursive Type-Guard
-      type UPS = P extends Types ? UpstreamGuard<P, G, false> : null
-      const _upstr = (o => _dnstr(o) || _guard(o)) as P extends Types ? UPS : null
+      const upstr = glue(guards[p]) as P extends Types ? TypeGuard<Type<P> | T, []> : null
       // Return Recursive Type-Guard Proxy
-      return _setGuardCircularReference(_upstr)
+      return setGuardCircularReference(upstr)
     }
   }
 }
@@ -196,7 +210,7 @@ function _getUpstreamGuardHandler<
 // Recursive Type-Guard Proxy
 export const superGuards = new Proxy(
   {} as SuperGuards,
-  _getUpstreamGuardHandler(guards.never)
+  getUpstreamGuardHandler(guards.never)
 )
 
 /*
@@ -209,7 +223,7 @@ export const superGuards = new Proxy(
 export function has<
   K extends KeyOf = KeyOf,
   T extends Types = Types,
-  O extends Extra = {},
+  O extends {} = {},
 >(
   obj: {},
   key: K | K[],
@@ -249,11 +263,11 @@ export function has<
 */
 
 // Every-Property Type-Guard
-export function are<K extends number, T extends Types, O extends Extra | unknown[] = {}>(
-  obj: Extra | unknown[],
+export function are<K extends number, T extends Types, O extends {} | unknown[] = {}>(
+  obj: {} | unknown[],
   typeName: T | T[],
   _oref?: O
-): obj is O extends unknown[] ? Type<T>[] : Extra<K, Type<T>> {
+): obj is O extends unknown[] ? Type<T>[] : Set<Type<T>> {
   // Check All
   return Object.values(obj).every(v => isType(v, typeName))
 }
@@ -271,7 +285,7 @@ const superTarget = (() => null) as unknown
 export const is = new Proxy(superTarget as Is, {
   // Is-Type Call
   apply(_target, _thisArg, args) {
-    if (args.length != 2) return
+    if (args.length != 2) throw new Error('invalid arguments')
     const [obj, typeName] = args
     if (!guards.typeof(typeName)) return
     else if (guards.array(typeName)) {
@@ -294,7 +308,7 @@ export const is = new Proxy(superTarget as Is, {
   has(_target, p) {
     return (
       p in guards ||
-      (guards.string(p) && ['in', 'has'].includes(p))
+      (guards.string(p) && ['in', 'every'].includes(p))
     )
   }
 })

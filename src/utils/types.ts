@@ -507,37 +507,30 @@ type GuardEvery = <K extends KeyOf, T extends Types>(
 
 // Recursive-Guards Helper Type
 export type UpstreamGuard<
-P extends Types,
-  G extends TypeGuard<Type, []>,
-  H extends boolean
+  K extends Types,
+  D extends TypeGuard<unknown, []>,
 > = As<
-  As<
-    TypeGuard<TypeFromGuard<G> | Type<P>, []>
-  > & As<
-    H extends true
-      ? ReGuard<P>
-      : unknown
-  >
+  Type<K> | TypeFromGuard<D> extends infer T
+    ? TypeGuard<T, []> & ReGuard<T>
+    : never
 >
 
 // Recursive-Guards Property Type
-export interface ReGuard<H extends Types = Types> {
+export interface ReGuard<H> {
   or: SuperGuards<Types, H>
 }
 
 // Helper for High-Depth Prevention
-export type SuperGuardHelper<H extends Types> = As<
-  TypeGuard<Type<H>, []> & ReGuard<H>
+export type SuperGuardHelper<H> = As<
+  TypeGuard<H, []> & ReGuard<H>
 >
 
 // Super-Guard Interface
-export interface SuperGuard<
-  H extends Types = Types
-> extends SuperGuardHelper<H> {}
+export interface SuperGuard<H> extends SuperGuardHelper<H> {}
 
 // Super-Guards Object Type
-export type SuperGuards<K extends Types = Types, H extends Types = never> = As<
-  And<K extends Types ? Has<K, SuperGuard<H | K>> : never>
+export type SuperGuards<K extends Types = Types, H = never> = As<
+  And<K extends Types ? Has<K, SuperGuard<H | Type<K>>> : never>
 >
 
 /*
@@ -546,10 +539,12 @@ export type SuperGuards<K extends Types = Types, H extends Types = never> = As<
 ##########################################################################################################################
 */
 
+// Guard-Descriptor Type
 export type GuardDescriptor = As<
   TypeGuard<unknown>[] | Record<KeyOf, TypeGuard<unknown>>
 >
 
+// Type-Of TypeGuard from Descriptor
 export type TypeFromGuardDescriptor<
   S extends GuardDescriptor
 > = As<
@@ -576,12 +571,6 @@ export type TypeFromGuardDescriptor<
       >
     }
 >
-
-type e = TypeFromGuardDescriptor<[
-  SuperGuard<'number'>,
-  SuperGuard<'string'>,
-  SuperGuard<'promise'>
-]>
 
 /*
 ##########################################################################################################################
