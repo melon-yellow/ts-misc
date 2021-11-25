@@ -154,8 +154,8 @@ export function isType<T extends Types>(
 */
 
 // Type-Guard Proxy-Function Generator
-function setGuardCircularReference<
-  G extends TypeGuard<Type, []>
+function getGuardProxy<
+  G extends TypeGuard<unknown, []>
 >(guard: G) {
   return new Proxy(guard, {
     get (target, p) {
@@ -169,29 +169,33 @@ function setGuardCircularReference<
       // Else
       return target[p]
     }
-  }) as G & SuperGuard<TypeOf<TypeFromGuard<G>>>
+  }) as G & SuperGuard<TypeFromGuard<G>>
+}
+
+// Set Gule Method
+const getUpstreamGuard = <DT, UT>(
+  dnstr: TypeGuard<DT, []>,
+  guard: TypeGuard<UT, []>
+) => {
+  return (o => dnstr(o) || guard(o)) as TypeGuard<
+    TypeFromGuard<typeof dnstr> | TypeFromGuard<typeof guard>,
+    []
+  >
 }
 
 // Type-Guards Proxy-Handler Generator
 function getUpstreamGuardHandler<T>(
   dnstr: TypeGuard<T, []>
 ): ProxyHandler<SuperGuards> {
-  // Set Gule Method
-  const glue = <UT>(guard: TypeGuard<UT>) => {
-    return (o => dnstr(o) || guard(o)) as TypeGuard<
-      TypeFromGuard<typeof dnstr> | TypeFromGuard<typeof guard>,
-      []
-    >
-  }
   // Return Proxy Handler
   return {
     // Or Call
-    apply<UT>(_target, _thisArg, args: [TypeGuard<UT>]) {
+    apply<UT>(_target, _thisArg, args: [TypeGuard<UT, []>]) {
       if (args.length != 1) throw new Error('invalid arguments')
       const [guard] = args
       if (!guards.function(guard)) throw new Error('invalid arguments')
-      const upstr = glue(guard)
-      return setGuardCircularReference(upstr)
+      const upstr = getUpstreamGuard(dnstr, guard)
+      return getGuardProxy(upstr)
     },
     // Or Get
     get<P extends string | symbol>(
@@ -200,9 +204,10 @@ function getUpstreamGuardHandler<T>(
       // Check if property exists
       if (!guards.typeof(p)) return
       // Set Recursive Type-Guard
-      const upstr = glue(guards[p]) as P extends Types ? TypeGuard<Type<P> | T, []> : null
+      type UPS = P extends Types ? TypeGuard<Type<P> | T, []> : null
+      const upstr = getUpstreamGuard(dnstr, guards[p]) as UPS
       // Return Recursive Type-Guard Proxy
-      return setGuardCircularReference(upstr)
+      return getGuardProxy(upstr)
     }
   }
 }
