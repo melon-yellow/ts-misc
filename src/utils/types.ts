@@ -517,7 +517,14 @@ export type UpstreamGuard<
 
 // Recursive-Guards Property Type
 export interface ReGuard<H> {
-  or: SuperGuards<Types, H>
+  or: As<
+    (<T>(guard: TypeGuard<T, []>) => SuperGuard<T | H>)
+    & SuperGuards<Types, H>
+  >
+  of: As<
+    (<T>(guard: TypeGuard<T, []>) => SuperGuard<T | H>)
+    & SuperGuards<Types, H>
+  >
 }
 
 // Helper for High-Depth Prevention
@@ -628,7 +635,7 @@ export type Set<T = unknown> = As<{
 }>
 
 // Type-Of Has
-export type Has<K extends KeyOf, T extends ValueOf = ValueOf, O extends {} = {}> = As<
+export type Has<K extends KeyOf, T extends unknown = unknown, O extends {} = {}> = As<
   And<{ [P in K]: T } & O>
 >
 

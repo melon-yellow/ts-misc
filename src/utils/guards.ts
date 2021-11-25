@@ -161,10 +161,10 @@ function getGuardProxy<
     get (target, p) {
       // Check Target Type
       if (!guards.function(target)) return
-      // Or Clause
-      if (p === 'or') return new Proxy(
+      // Or and Of Clauses
+      if (p === 'or' || p === 'of') return new Proxy(
         {} as SuperGuards,
-        getUpstreamGuardHandler(target)
+        getUpstreamGuardHandler(target, p)
       )
       // Else
       return target[p]
@@ -172,20 +172,16 @@ function getGuardProxy<
   }) as G & SuperGuard<TypeFromGuard<G>>
 }
 
-// Set Gule Method
-const getUpstreamGuard = <DT, UT>(
-  dnstr: TypeGuard<DT, []>,
-  guard: TypeGuard<UT, []>
-) => {
-  return (o => dnstr(o) || guard(o)) as TypeGuard<
-    TypeFromGuard<typeof dnstr> | TypeFromGuard<typeof guard>,
-    []
-  >
-}
+// Glue Upstream Guard
+const glueGuardsOr = <D, U>(
+  dnstr: TypeGuard<D, []>,
+  guard: TypeGuard<U, []>
+) => (o => dnstr(o) || guard(o)) as TypeGuard<D | U, []>
 
 // Type-Guards Proxy-Handler Generator
-function getUpstreamGuardHandler<T>(
-  dnstr: TypeGuard<T, []>
+function getUpstreamGuardHandler<T, G extends 'or' | 'of'>(
+  dnstr: TypeGuard<T, []>,
+  glue: G
 ): ProxyHandler<SuperGuards> {
   // Return Proxy Handler
   return {
@@ -194,7 +190,7 @@ function getUpstreamGuardHandler<T>(
       if (args.length != 1) throw new Error('invalid arguments')
       const [guard] = args
       if (!guards.function(guard)) throw new Error('invalid arguments')
-      const upstr = getUpstreamGuard(dnstr, guard)
+      const upstr = getUpstreamGuard(dnstr, guard, glue)
       return getGuardProxy(upstr)
     },
     // Or Get
@@ -205,7 +201,7 @@ function getUpstreamGuardHandler<T>(
       if (!guards.typeof(p)) return
       // Set Recursive Type-Guard
       type UPS = P extends Types ? TypeGuard<Type<P> | T, []> : null
-      const upstr = getUpstreamGuard(dnstr, guards[p]) as UPS
+      const upstr = getUpstreamGuard(dnstr, guards[p], glue) as UPS
       // Return Recursive Type-Guard Proxy
       return getGuardProxy(upstr)
     }
@@ -215,7 +211,7 @@ function getUpstreamGuardHandler<T>(
 // Recursive Type-Guard Proxy
 export const superGuards = new Proxy(
   {} as SuperGuards,
-  getUpstreamGuardHandler(guards.never)
+  getUpstreamGuardHandler(guards.never, 'or')
 )
 
 /*
