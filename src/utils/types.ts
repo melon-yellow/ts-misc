@@ -285,6 +285,19 @@ export type ArrayFromObject<O extends {}> = As<
 #                                                       MISCELLANEOUS                                                    #
 ##########################################################################################################################
 */
+interface LoopBackSet<T> {
+  [x: string]: T | LoopBack<T>
+  [x: number]: T | LoopBack<T>
+  [x: symbol]: T | LoopBack<T>
+}
+type LoopBackArray<T> = (T | LoopBack<T>)[]
+export type LoopBack<T> = LoopBackSet<T> | LoopBackArray<T>
+
+/*
+##########################################################################################################################
+#                                                       MISCELLANEOUS                                                    #
+##########################################################################################################################
+*/
 
 // Pseudo-Class Interface
 export interface PseudoClass<N extends string | symbol = string | symbol> {
@@ -472,12 +485,12 @@ export type TypeGuardLike<A extends ArgOf = ArgOf> = As<
 >
 
 // Generic Type-Guard Type
-export type TypeGuard<T, A extends ArgOf = ArgOf> = As<
+export type TypeGuard<T = unknown, A extends ArgOf = ArgOf> = As<
   (obj: unknown, ...args: A) => obj is T
 >
 
 // Type Of Guarded Type
-export type TypeFromGuard<G extends TypeGuard<unknown>> = As<
+export type TypeFromGuard<G extends TypeGuard> = As<
   G extends TypeGuard<infer T> ? T : never
 >
 
@@ -563,18 +576,38 @@ export type SuperGuards<K extends Types = Types, H = never> = As<
 */
 
 // Guard-Descriptor Type
-export type GuardDescriptor = As<
-  TypeGuard<unknown>[] | Record<KeyOf, TypeGuard<unknown>>
+export type GuardDescriptor<
+  S extends ReadonlyInclude<unknown[] | Set> = null
+> = As<
+  S extends null
+    ? LoopBack<TypeGuard>
+    : {
+      [K in keyof S]: As<
+        S[K] extends (unknown[] | Set)
+          ? GuardDescriptor<S[K]>
+          : TypeGuard<S[K], []>
+      >
+    }
 >
+
+type g = GuardDescriptor
+type o = GuardDescriptor<[string, {
+  u: string
+  o?: () => number
+}]>
+
+type u = TypeFromGuardDescriptor<o>
 
 // Type-Of TypeGuard from Descriptor
 export type TypeFromGuardDescriptor<
-  S extends GuardDescriptor
+  D extends GuardDescriptor
 > = As<{
-  [K in keyof S]: As<
-    S[K] extends TypeGuard<unknown>
-      ? TypeFromGuard<S[K]>
-      : never
+  [K in keyof D]: As<
+    D[K] extends GuardDescriptor
+      ? TypeFromGuardDescriptor<D[K]>
+      : D[K] extends TypeGuard
+        ? TypeFromGuard<D[K]>
+        : never
   >
 }>
 
