@@ -65,7 +65,7 @@ export type Join<T extends unknown> = As<
       ? never
       : I extends {}
       ? {
-          [K in KeyOf<I>]: I[K]
+          [K in keyof I]: I[K]
         }
       : never
     : never
@@ -199,7 +199,7 @@ export type ArrayIndex<K extends KeyOf> = As<
 
 // Object From Array Key-Values
 export type ObjectFromArray<A extends unknown[] | {}> = As<{
-  [K in KeyOf<A> as ArrayIndex<K>]: A[K]
+  [K in keyof A as ArrayIndex<K>]: A[K]
 }>
 
 /*
@@ -217,8 +217,8 @@ export type EntriesOf<
 > = As<
   TupleOf<
     {
-      [K in KeyOf<T>]: [K, T[K]]
-    }[KeyOf<T>]
+      [K in keyof T]: [K, T[K]]
+    }[keyof T]
   >
 >
 
@@ -512,10 +512,8 @@ export type GuardArrayOf<T> = As<
   <A extends ReadonlyInclude<unknown[]> = never>(
     obj: unknown
   ) => obj is And<A &
-    A extends As<readonly unknown[]>
-      ? ArrayFromObject<{
-        [K in keyof ObjectFromArray<A>]: T
-      }>
+    A extends (readonly unknown[])
+      ? { [K in keyof A]: T }
       : T[]
   >
 >
@@ -572,30 +570,13 @@ export type GuardDescriptor = As<
 // Type-Of TypeGuard from Descriptor
 export type TypeFromGuardDescriptor<
   S extends GuardDescriptor
-> = As<
-  S extends unknown[]
-    ? As<
-      EntriesOf<{
-        [K in keyof S as ArrayIndex<K>]: As<
-          S[K] extends infer V
-            ? V extends TypeGuard<unknown>
-              ? TypeFromGuard<V>
-              : never
-            : never
-        >
-      }> extends infer E
-        ? E extends Entries
-          ? ArrayFromEntries<E>
-          : never
-        : never
-    >: {
-      [K in KeyOf<S>]: As<
-        S[K] extends TypeGuard<unknown>
-          ? TypeFromGuard<S[K]>
-          : never
-      >
-    }
->
+> = As<{
+  [K in keyof S]: As<
+    S[K] extends TypeGuard<unknown>
+      ? TypeFromGuard<S[K]>
+      : never
+  >
+}>
 
 /*
 ##########################################################################################################################
