@@ -197,6 +197,11 @@ export type ArrayIndex<K extends KeyOf> = As<
       : K
 >
 
+// Object From Array Key-Values
+export type ObjectFromArray<A extends unknown[] | {}> = As<{
+  [K in KeyOf<A> as ArrayIndex<K>]: A[K]
+}>
+
 /*
 ##########################################################################################################################
 #                                                       MISCELLANEOUS                                                    #
@@ -219,11 +224,9 @@ export type EntriesOf<
 
 // Type-Of Record Entries
 export type EntriesOfArray<
-  S extends {} = Set
+  S extends unknown[] | {} = []
 > = As<
-  EntriesOf<{
-    [K in KeyOf<S> as ArrayIndex<K>]: S[K]
-  }>
+  EntriesOf<ObjectFromArray<S>>
 >
 
 // Type-Of Entrie Record
@@ -259,12 +262,20 @@ export type ArrayAppendEntries<
 >
 
 // Array Type From Entries
-export type ArrayFromEntries<T extends Entries = Entries> = As<
+export type ArrayFromEntries<T extends Entries = []> = As<
   ObjectFromEntries<T> extends infer O
     ? EntriesOfArray<O> extends infer E
       ? E extends Entries
         ? ArrayAppendEntries<E>
         : never
+      : never
+    : never
+>
+
+export type ArrayFromObject<O extends {}> = As<
+  EntriesOfArray<O> extends infer E
+    ? E extends Entries
+      ? ArrayFromEntries<E>
       : never
     : never
 >
@@ -482,22 +493,32 @@ export type Guards<K extends Types = Types> = As<
 >
 
 // Set-Has Guard
-type GuardHas = <
-  O = unknown,
-  K extends KeyOf = KeyOf,
-  T extends Types = Types
->(
-  obj: unknown,
-  key: K | K[],
-  typeName?: T | T[],
-  _oref?: O
-) => obj is Has<K, Type<T>, O>
+export type GuardHas<T> = As<
+  <K extends KeyOf = never>(
+    obj: unknown,
+    key: K | K[],
+  ) => obj is { [P in K]: T }
+>
 
-// Set-Every Guard
-type GuardEvery = <K extends KeyOf, T extends Types>(
-  obj: Record<K, unknown>,
-  typeName: T | T[]
-) => obj is Record<K, TypeOf<T>>
+// Set Object Guard
+export type GuardObjectOf<T> = As<
+  <O extends {} = never>(
+    obj: unknown
+  ) => obj is And<O & { [K in keyof O]: T }>
+>
+
+// Set Array Guard
+export type GuardArrayOf<T> = As<
+  <A extends ReadonlyInclude<unknown[]> = never>(
+    obj: unknown
+  ) => obj is And<A &
+    A extends As<readonly unknown[]>
+      ? ArrayFromObject<{
+        [K in keyof ObjectFromArray<A>]: T
+      }>
+      : T[]
+  >
+>
 
 /*
 ##########################################################################################################################
@@ -505,35 +526,32 @@ type GuardEvery = <K extends KeyOf, T extends Types>(
 ##########################################################################################################################
 */
 
-// Recursive-Guards Helper Type
-export type UpstreamGuard<
-  K extends Types,
-  D extends TypeGuard<unknown, []>,
-> = As<
-  Type<K> | TypeFromGuard<D> extends infer T
-    ? TypeGuard<T, []> & ReGuard<T>
-    : never
->
-
 // Recursive-Guards Property Type
 export interface ReGuard<H> {
   or: As<
     (<T>(guard: TypeGuard<T, []>) => SuperGuard<T | H>)
     & SuperGuards<Types, H>
   >
-  of: As<
-    (<T>(guard: TypeGuard<T, []>) => SuperGuard<T | H>)
-    & SuperGuards<Types, H>
-  >
 }
 
 // Helper for High-Depth Prevention
-export type SuperGuardHelper<H> = As<
+type SuperGuardHelper<H> = As<
   TypeGuard<H, []> & ReGuard<H>
 >
 
 // Super-Guard Interface
 export interface SuperGuard<H> extends SuperGuardHelper<H> {}
+
+type HyperGuardHelper<U, H extends unknown[] | {}, D = never> = As<
+  D | 
+    H extends unknown[]
+      ? (ValueOf<H> | U)[]
+      : {
+
+      }
+>
+
+type e = HyperGuardHelper<string, []>
 
 // Super-Guards Object Type
 export type SuperGuards<K extends Types = Types, H = never> = As<
@@ -587,8 +605,7 @@ export type TypeFromGuardDescriptor<
 
 // Is Interface
 export interface Is extends IsType, SuperGuards {
-  in: GuardHas
-  every: GuardEvery
+  in: GuardHas<unknown>
 }
 
 /*
@@ -611,12 +628,16 @@ export type KeyOf<T extends {} = Set> = As<
 >
 
 // Type-Of Record Value
-export type ValueOf<T extends {} = Set> = As<
-  T extends {
-    [P in KeyOf]: infer V
-  }
-    ? V
-    : never
+export type ValueOf<T extends unknown[] | {} = Set> = As<
+  T extends unknown[]
+    ? T extends (infer V)[]
+      ? V
+      : never
+    : T extends {
+      [P in KeyOf]: infer V
+    }
+      ? V
+      : never
 >
 
 /*
@@ -635,8 +656,12 @@ export type Set<T = unknown> = As<{
 }>
 
 // Type-Of Has
-export type Has<K extends KeyOf, T extends unknown = unknown, O extends {} = {}> = As<
-  And<{ [P in K]: T } & O>
+export type Has<
+  K extends KeyOf,
+  T extends unknown = unknown,
+  O extends {} = {}
+> = As<
+  And<O & { [P in K]: T }>
 >
 
 /*
