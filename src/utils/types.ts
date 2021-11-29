@@ -553,16 +553,21 @@ type SuperGuardHelper<H> = As<
 // Super-Guard Interface
 export interface SuperGuard<H> extends SuperGuardHelper<H> {}
 
-type HyperGuardHelper<U, H extends unknown[] | {}, D = never> = As<
-  D | 
+type HyperGuardHelper<
+  U,
+  H extends unknown[] | {},
+  D = never
+> = As<
+  D | As<
     H extends unknown[]
       ? (ValueOf<H> | U)[]
-      : {
-
-      }
+      : { [K in keyof H]: U }
+  >
 >
 
-type e = HyperGuardHelper<string, []>
+type o = HyperGuardHelper<number, { whiplash: 2 }>
+
+type e = HyperGuardHelper<string, number[]>
 
 // Super-Guards Object Type
 export type SuperGuards<K extends Types = Types, H = never> = As<
@@ -625,7 +630,9 @@ export interface Is extends IsType, SuperGuards {
 type KeyOfPrimary = keyof any
 
 // Type-Of Record Key
-export type KeyOf<T extends {} = Set> = As<
+export type KeyOf<
+  T extends ReadonlyInclude<unknown[] | Set> = (unknown[] | Set)
+> = As<
   T extends {
     [P in infer K]: unknown
   }
@@ -634,7 +641,9 @@ export type KeyOf<T extends {} = Set> = As<
 >
 
 // Type-Of Record Value
-export type ValueOf<T extends unknown[] | {} = Set> = As<
+export type ValueOf<
+  T extends ReadonlyInclude<unknown[] | Set> = (unknown[] | Set)
+> = As<
   T extends unknown[]
     ? T extends (infer V)[]
       ? V
@@ -664,7 +673,7 @@ export type Set<T = unknown> = As<{
 // Type-Of Has
 export type Has<
   K extends KeyOf,
-  T extends unknown = unknown,
+  T = unknown,
   O extends {} = {}
 > = As<
   And<O & { [P in K]: T }>
@@ -677,9 +686,10 @@ export type Has<
 */
 
 // Type-Of Function
-export type Callable<A extends unknown[] = unknown[], R = unknown> = As<
-  (...args: A) => R
->
+export type Callable<
+  A extends unknown[] = unknown[],
+  R = unknown
+> = As<(...args: A) => R>
 
 // Type-Of Function Args
 export type ArgOf<F extends Callable = Callable> = As<
@@ -687,7 +697,9 @@ export type ArgOf<F extends Callable = Callable> = As<
 >
 
 // Type-Of Function Return
-export type ReturnOf<F extends Callable = Callable> = As<ReturnType<F>>
+export type ReturnOf<
+  F extends Callable = Callable
+> = As<ReturnType<F>>
 
 /*
 ##########################################################################################################################
