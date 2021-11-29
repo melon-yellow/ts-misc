@@ -515,7 +515,7 @@ export type GuardHas<T> = As<
 
 // Set Object Guard
 export type GuardObjectOf<T> = As<
-  <O extends {} = never>(
+  <O extends ReadonlyInclude<Set> = never>(
     obj: unknown
   ) => obj is And<O & { [K in keyof O]: T }>
 >
