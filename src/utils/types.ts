@@ -590,14 +590,6 @@ export type GuardDescriptor<
     }
 >
 
-type g = GuardDescriptor
-type o = GuardDescriptor<[string, {
-  u: string
-  o?: () => number
-}]>
-
-type u = TypeFromGuardDescriptor<o>
-
 // Type-Of TypeGuard from Descriptor
 export type TypeFromGuardDescriptor<
   D extends GuardDescriptor
