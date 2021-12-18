@@ -565,8 +565,6 @@ type HyperGuardHelper<
   >
 >
 
-is.array.of.string.or.number.or.array.of.string
-
 // Super-Guards Object Type
 export type SuperGuards<K extends Types = Types, H = never> = As<
   And<K extends Types ? Has<K, SuperGuard<H | Type<K>>> : never>
