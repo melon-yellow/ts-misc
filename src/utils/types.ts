@@ -565,9 +565,7 @@ type HyperGuardHelper<
   >
 >
 
-type o = HyperGuardHelper<number, { whiplash: 2 }>
-
-type e = HyperGuardHelper<string, number[]>
+is.array.of.string.or.number.or.array.of.string
 
 // Super-Guards Object Type
 export type SuperGuards<K extends Types = Types, H = never> = As<

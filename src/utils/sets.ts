@@ -13,7 +13,7 @@ import { SuperConstructor } from './types.js'
 // Type Imports
 import type {
   As,
-  Extra,
+  Set,
   KeyOf,
   ValueOf,
   ReadonlyInclude,
@@ -29,7 +29,7 @@ import type {
 
 // Get Random Item of Array
 export function rand<T extends ValueOf>(
-  arr: ReadonlyInclude<Extra<KeyOf, T> | Array<T>>
+  arr: ReadonlyInclude<Set<T> | T[]>
 ): T {
   const keys = Object.keys(arr)
   const k = keys[Math.floor(Math.random() * keys.length)]
