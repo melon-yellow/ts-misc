@@ -293,7 +293,7 @@ export type ArrayFromObject<O extends {}> = (
 ##########################################################################################################################
 */
 
-type Partials<
+export type Partials<
   O extends Set,
   K extends unknown[] = TupleOf<keyof O>,
   ACC extends {} = {}
@@ -313,17 +313,15 @@ type Partials<
       : never
 )
 
-type p = Partials<{ e: 1, o?: 2, u: 3 }>
-
 /*
 ##########################################################################################################################
 #                                                       MISCELLANEOUS                                                    #
 ##########################################################################################################################
 */
-interface LoopBackSet<T> {
+type LoopBackSet<T> = {
   [x: string]: T | LoopBack<T>
   [x: number]: T | LoopBack<T>
-  [x: symbol]: T | LoopBack<T>
+  [x: symbol]: T | LoopBack<T> | boolean
 }
 type LoopBackArray<T> = (T | LoopBack<T>)[]
 export type LoopBack<T> = LoopBackSet<T> | LoopBackArray<T>
@@ -575,7 +573,7 @@ export type GuardArrayOf<T, H = never> = (
 export interface GuardMethods<H> {
   in: GuardHas<H>
   or: SuperGuards<H>
-  opt: SuperGuard<H> & { optional: true }
+  opt: SuperGuard<H> & { [opt]: true }
 }
 
 // Recursive-Object-Guards Property Type
@@ -621,19 +619,48 @@ export interface SuperGuards<H = never> extends SuperGuardsHelper<H> {}
 ##########################################################################################################################
 */
 
+// Tag For Optional Parameters
+export const opt = Symbol('opt')
+
 // Guard-Descriptor Type
 export type GuardDescriptor<
   S extends ReadonlyInclude<unknown[] | Set> = null
 > = (
   S extends null
-    ? LoopBack<TypeGuard>
-    : {
-      [K in keyof S]-?: (
-        S[K] extends (unknown[] | Set)
-          ? GuardDescriptor<S[K]>
-          : TypeGuard<S[K], []>
-      )
-    }
+    ? LoopBack<TypeGuard & { [opt]?: boolean }>
+    : S extends ReadonlyInclude<unknown[]>
+      ? {
+        [K in keyof S as Exclude<K, typeof opt>]-?: (
+          S[K] extends (infer I)
+            ? I extends (any | null | undefined)
+              ? TypeGuard<I, []>
+              : I extends ReadonlyInclude<unknown[] | Set>
+                ? GuardDescriptor<I>
+                : TypeGuard<I, []>
+            : never
+        )
+      }
+      : S extends ReadonlyInclude<Set>
+        ? Partials<S> extends (infer P)
+          ? {
+            [K in keyof S as Exclude<K, typeof opt>]-?: And<(
+              S[K] extends (infer I)
+                ? I extends (any | null | undefined)
+                  ? TypeGuard<I, []>
+                  : I extends ReadonlyInclude<unknown[] | Set>
+                    ? GuardDescriptor<I>
+                    : TypeGuard<I, []>
+                : never
+            ) & (
+              K extends keyof P
+                ? P[K] extends true
+                  ? { [opt]: true }
+                  : unknown
+                : never
+            )>
+          }
+          : never
+        : never
 )
 
 // Type-Of TypeGuard from Descriptor Helper
@@ -656,13 +683,15 @@ export type TypeFromGuardDescriptor<
     ? { [K in keyof D]: TypeFromGuardDescriptorHelper<D, K> } 
     : And<{
       [K in keyof D as (
-        D[K] extends { optional: true } ? K : never
+        D[K] extends { [opt]: true } ? K : never
       )]+?: TypeFromGuardDescriptorHelper<D, K>
     } & {
       [K in keyof D as (
-        D[K] extends { optional: true } ? never : K
+        D[K] extends { [opt]: true } ? never : K
       )]-?: TypeFromGuardDescriptorHelper<D, K>
-    }>
+    }> extends (infer U)
+      ? { [K in keyof U as Exclude<K, typeof opt>]: U[K] }
+      : never
 )
 
 // Type-Of Guard Or Descriptor
