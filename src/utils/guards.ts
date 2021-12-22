@@ -153,71 +153,70 @@ export function isType<T extends Types>(
 */
 
 // Type-Guard Proxy-Function Generator
-const guardProxy = <
-  J,
-  G extends TypeGuard<unknown, []>
->(
-  guard: G,
-  join: (upstr: TypeGuard<unknown, []>) => TypeGuard<J, []>
+const superGuardGenerator = <D, G>(
+  dnstr: TypeGuard<D, []>,
+  guard: TypeGuard<G, []>
 ) => (
-  new Proxy(guard, {
-    apply (target, _thisArg, args: [unknown]) {
-      if (args.length != 1) throw new Error('invalid arguments')
-      const [obj] = args
-      const upstr = join(target)
-      return upstr(obj)
-    },
-    get (target, p) {
-      // Check Target Type
-      if (!guards.function(target)) throw new Error(
-        'invalid target at SuperGuard proxy'
-      )
-      // Or Clause
-      if (p === 'or') return new Proxy(
-        {} as SuperGuards,
-        guardProxyHandler(target)
-      )
-      // In Clause
-      if (p === 'in') return new Proxy(
-        {} as SuperGuards,
-        guardProxyHandler(target)
-      )
-      // Else
-      return target[p]
+  new Proxy(
+    guard as unknown as SuperGuard<D | G>,
+    {
+      apply (target, _thisArg, args: [unknown]): args is [D | G] {
+        if (args.length != 1) throw new Error('invalid arguments')
+        const [obj] = args
+        const upstr = (o => dnstr ? dnstr(o) : false || guard(o)) as TypeGuard<D | G, []>
+        return upstr(obj)
+      },
+      get (target, p) {
+        // Check Target Type
+        if (!guards.function(target)) throw new Error(
+          'invalid target at SuperGuard proxy'
+        )
+        // Or Clause
+        if (p === 'or') return new Proxy(
+          {} as SuperGuards,
+          guardProxyHandler(target)
+        )
+        // In Clause
+        if (p === 'in') return new Proxy(
+          {} as SuperGuards,
+          guardProxyHandler(target)
+        )
+        // Else
+        return target[p]
+      }
     }
-  }) as unknown as SuperGuard<J>
+  )
 )
 
+// Proxy-Handler Helper Type
+type UPS<P, H> = P extends Types ? SuperGuard<H | Type<P>> : never
+
 // Type-Guards Proxy-Handler Generator
-const guardProxyHandler = <T>(
-  dnstr: TypeGuard<T, []>
+const guardProxyHandler = <H>(
+  dnstr: TypeGuard<H, []>
 ): ProxyHandler<SuperGuards> => ({
   // Or Call
   apply<U>(
     _target,
     _thisArg,
     args: [TypeGuard<U, []>]
-  ): SuperGuard<U | T> {
+  ): SuperGuard<H | U> {
     if (args.length != 1) throw new Error('invalid arguments')
     const [guard] = args
     if (!guards.function(guard)) throw new Error('invalid arguments')
-    // Return Recursive Type-Guard Proxy
-    type UPS = TypeGuard<U | T, []>
-    const join = (grd: typeof guard) => (o => dnstr(o) || grd(o)) as UPS
-    return guardProxy(guard, join)
+    // Generate Recursive Type-Guard Proxy
+    return superGuardGenerator(dnstr, guard)
   },
   // Or Get
   get<P extends string | symbol>(
     _target, p: P
-  ): P extends Types ? SuperGuard<Type<P> | T> : never {
+  ): UPS<P, H> {
     // Check if property exists
     if (!guards.typeof(p)) throw new Error(`key "${p}" not in SuperGuards`)
-    // Set Recursive Type-Guard
-    const guard = guards[p] as P extends Types ? SuperGuard<Type<P>> : never
-    // Return Recursive Type-Guard Proxy
-    type UPS = P extends Types ? SuperGuard<Type<P> | T> : never
-    const join = (grd: typeof guard) => (o => dnstr(o) || grd(o)) as UPS
-    return guardProxy(guard, join)
+    // Get Type-Guard
+    const guard = guards[p] as UPS<P, never>
+    // Generate Recursive Type-Guard Proxy
+    return superGuardGenerator(dnstr, guard) as UPS<P, H>
   }
 })
 
