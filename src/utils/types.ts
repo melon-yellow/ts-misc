@@ -546,10 +546,8 @@ export type GuardArrayOf<T, H = never> = (
 // Recursive-Guards Property Type
 export interface GuardMethods<H> {
   in: GuardHas<H>
-  or: (
-    (<T>(guard: TypeGuard<T, []>) => SuperGuard<H | T>)
-    & SuperGuards<H>
-  )
+  or: SuperGuards<H>
+  opt: SuperGuard<H> & { optional: true }
 }
 
 // Recursive-Object-Guards Property Type
@@ -571,6 +569,7 @@ type SuperGuardHelper<H> = (
 
 // Super-Guards Object Type
 export type SuperGuardsHelper<H = never> = (
+  (<T>(guard: TypeGuard<T, []>) => SuperGuard<H | T>) & 
   {
     [K in Types]: SuperGuard<H | Type<K>> & (
       K extends 'array'
@@ -609,18 +608,34 @@ export type GuardDescriptor<
     }
 )
 
+// Type-Of TypeGuard from Descriptor Helper
+type TypeFromGuardDescriptorHelper<
+  D extends GuardDescriptor,
+  K extends keyof D
+> = (
+  D[K] extends GuardDescriptor
+    ? TypeFromGuardDescriptor<D[K]>
+    : D[K] extends TypeGuard
+      ? TypeFromGuard<D[K]>
+      : never
+)
+
 // Type-Of TypeGuard from Descriptor
 export type TypeFromGuardDescriptor<
-  D extends GuardDescriptor
-> = {
-  [K in keyof D]: (
-    D[K] extends GuardDescriptor
-      ? TypeFromGuardDescriptor<D[K]>
-      : D[K] extends TypeGuard
-        ? TypeFromGuard<D[K]>
-        : never
-  )
-}
+  D extends GuardDescriptor = null
+> = (
+  D extends unknown[]
+    ? { [K in keyof D]: TypeFromGuardDescriptorHelper<D, K> } 
+    : And<{
+      [K in keyof D as (
+        D[K] extends { optional: true } ? K : never
+      )]?: TypeFromGuardDescriptorHelper<D, K>
+    } & {
+      [K in keyof D as (
+        D[K] extends { optional: true } ? never : K
+      )]: TypeFromGuardDescriptorHelper<D, K>
+    }>
+)
 
 /*
 ##########################################################################################################################
@@ -629,7 +644,7 @@ export type TypeFromGuardDescriptor<
 */
 
 // Is Interface
-export interface Is extends IsType, SuperGuards {
+export interface Is extends SuperGuards {
   in: GuardHas<unknown>
 }
 

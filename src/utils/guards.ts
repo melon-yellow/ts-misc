@@ -16,6 +16,7 @@ import type {
   Guards,
   SuperGuard,
   SuperGuards,
+  GuardHas,
   Callable,
   Class,
   Set,
@@ -152,41 +153,43 @@ export function isType<T extends Types>(
 ##########################################################################################################################
 */
 
+// General Type-Guard Target
+const superTarget = (() => null) as unknown
+
 // Type-Guard Proxy-Function Generator
 const superGuardGenerator = <D, G>(
   dnstr: TypeGuard<D, []>,
   guard: TypeGuard<G, []>
-) => (
-  new Proxy(
-    guard as unknown as SuperGuard<D | G>,
-    {
-      apply (target, _thisArg, args: [unknown]): args is [D | G] {
-        if (args.length != 1) throw new Error('invalid arguments')
-        const [obj] = args
-        const upstr = (o => dnstr ? dnstr(o) : false || guard(o)) as TypeGuard<D | G, []>
-        return upstr(obj)
-      },
-      get (target, p) {
-        // Check Target Type
-        if (!guards.function(target)) throw new Error(
-          'invalid target at SuperGuard proxy'
-        )
-        // Or Clause
-        if (p === 'or') return new Proxy(
-          {} as SuperGuards,
-          guardProxyHandler(target)
-        )
-        // In Clause
-        if (p === 'in') return new Proxy(
-          {} as SuperGuards,
-          guardProxyHandler(target)
-        )
-        // Else
-        return target[p]
-      }
+) => {
+  // Set Upstream Guard
+  const upstr = (o => dnstr ? dnstr(o) : false || guard(o)) as TypeGuard<D | G, []>
+  // Return Proxy
+  return new Proxy(upstr, {
+    apply (target, _thisArg, args: [unknown]): args is [D | G] {
+      if (args.length != 1) throw new Error('invalid arguments')
+      const [obj] = args
+      return target(obj)
+    },
+    get (target, p) {
+      // Check Target Type
+      if (!guards.function(target)) throw new Error(
+        'invalid target at SuperGuard proxy'
+      )
+      // Or Clause
+      if (p === 'or') return new Proxy(
+        superTarget as SuperGuards<D | G>,
+        guardProxyHandler(target)
+      )
+      // In Clause
+      if (p === 'in') return new Proxy(
+        superTarget as GuardHas<D | G>,
+        guardHasProxyHandler(target)
+      )
+      // Else
+      return target[p]
     }
-  )
-)
+  }) as unknown as SuperGuard<D | G>
+}
 
 // Proxy-Handler Helper Type
 type UPS<P, H> = P extends Types ? SuperGuard<H | Type<P>> : never
@@ -194,7 +197,7 @@ type UPS<P, H> = P extends Types ? SuperGuard<H | Type<P>> : never
 // Type-Guards Proxy-Handler Generator
 const guardProxyHandler = <H>(
   dnstr: TypeGuard<H, []>
-): ProxyHandler<SuperGuards> => ({
+): ProxyHandler<SuperGuards<H>> => ({
   // Or Call
   apply<U>(
     _target,
@@ -222,7 +225,7 @@ const guardProxyHandler = <H>(
 
 // Recursive Type-Guard Proxy
 export const superGuards = new Proxy(
-  {} as SuperGuards,
+  superTarget as SuperGuards,
   guardProxyHandler(null)
 )
 
@@ -291,9 +294,6 @@ export function are<K extends number, T extends Types, O extends {} | unknown[] 
 ##########################################################################################################################
 */
 
-// General Type-Guard Target
-const superTarget = (() => null) as unknown
-
 // General Type-Guard Proxy
 export const is = new Proxy(superTarget as Is, {
   // Is-Type Call
@@ -309,7 +309,6 @@ export const is = new Proxy(superTarget as Is, {
   // Property Getters
   get (_target, p) {
     if (p === 'in') return has
-    if (p === 'every') return are
     if (p in guards) return superGuards[p]
   },
   // General Methods
@@ -321,13 +320,10 @@ export const is = new Proxy(superTarget as Is, {
   has(_target, p) {
     return (
       p in guards ||
-      (guards.string(p) && ['in', 'every'].includes(p))
+      (guards.string(p) && ['in'].includes(p))
     )
   }
 })
-
-const o = {}
-is.string.or.array.or(is.string.or.number).or.number.in(o, 'test')
 
 /*
 ##########################################################################################################################
@@ -346,7 +342,7 @@ export function isReturn<R extends Types>(
   const typeGuard = <A extends ArgOf>(
     obj: Callable<A>,
     ...args: A
-  ): obj is Callable<A, TypeOf<R>> => is(obj(...args), typeName)
+  ): obj is Callable<A, TypeOf<R>> => isType(obj(...args), typeName)
 
   // Return Type-Guard
   return typeGuard
