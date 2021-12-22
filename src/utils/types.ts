@@ -539,7 +539,7 @@ export type Guards<T extends Types = Types> = {
 
 // Set-Has Guard
 export type GuardHas<T> = (
-  <K extends KeyOf = never>(
+  <K extends KeyOf>(
     obj: unknown,
     key: K | K[],
   ) => obj is { [P in K]: T }
@@ -762,11 +762,9 @@ export interface Set<T = unknown> {
 // Type-Of Has
 export type Has<
   K extends KeyOf,
-  T = unknown,
-  O extends {} = {}
-> = (
-  And<O & { [P in K]: T }>
-)
+  T = unknown
+> = { [P in K]: T }
+
 
 /*
 ##########################################################################################################################
