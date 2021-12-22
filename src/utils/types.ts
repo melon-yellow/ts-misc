@@ -292,6 +292,34 @@ export type ArrayFromObject<O extends {}> = (
 #                                                       MISCELLANEOUS                                                    #
 ##########################################################################################################################
 */
+
+type Partials<
+  O extends Set,
+  K extends unknown[] = TupleOf<keyof O>,
+  ACC extends {} = {}
+> = (
+  K extends []
+    ? And<ACC>
+    : K[0] extends (infer P)
+      ? P extends string | number | symbol 
+        ? (
+          { [K in keyof O as Exclude<K, P>]-?: O[K] } & { [K in P]?: O[P] }
+        ) extends infer T
+          ? T extends O
+            ? Partials<O, ArrayPopFirst<K>, ACC & { [K in P]: true }>
+            : Partials<O, ArrayPopFirst<K>, ACC & { [K in P]: false }>
+          : never
+        : never
+      : never
+)
+
+type p = Partials<{ e: 1, o?: 2, u: 3 }>
+
+/*
+##########################################################################################################################
+#                                                       MISCELLANEOUS                                                    #
+##########################################################################################################################
+*/
 interface LoopBackSet<T> {
   [x: string]: T | LoopBack<T>
   [x: number]: T | LoopBack<T>
@@ -600,7 +628,7 @@ export type GuardDescriptor<
   S extends null
     ? LoopBack<TypeGuard>
     : {
-      [K in keyof S]: (
+      [K in keyof S]-?: (
         S[K] extends (unknown[] | Set)
           ? GuardDescriptor<S[K]>
           : TypeGuard<S[K], []>
@@ -629,13 +657,16 @@ export type TypeFromGuardDescriptor<
     : And<{
       [K in keyof D as (
         D[K] extends { optional: true } ? K : never
-      )]?: TypeFromGuardDescriptorHelper<D, K>
+      )]+?: TypeFromGuardDescriptorHelper<D, K>
     } & {
       [K in keyof D as (
         D[K] extends { optional: true } ? never : K
-      )]: TypeFromGuardDescriptorHelper<D, K>
+      )]-?: TypeFromGuardDescriptorHelper<D, K>
     }>
 )
+
+// Type-Of Guard Or Descriptor
+export type GuardOrDescriptor = TypeGuard<unknown, []> | GuardDescriptor
 
 /*
 ##########################################################################################################################
