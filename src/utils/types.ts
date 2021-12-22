@@ -18,9 +18,7 @@ export type As<T> = T
 
 // Export Class No-Op
 export class AsIs<T> {
-  constructor(obj: T) {
-    return obj
-  }
+  constructor(obj: T) { return obj }
 }
 
 /*
@@ -33,15 +31,15 @@ export class AsIs<T> {
 export type Extends<A, B> = A extends B ? true : false
 
 // Generates a Type Error For some Expression Evaluating to False
-export type CheckBool<B extends true> = As<B>
+export type CheckBool<B extends true> = B
 
 // Check if Type A is equal to Type B
-export type Equal<A, B> = As<
-  As<<T>() => T extends A ? 1 : 2> extends
-    As<<T>() => T extends B ? 1 : 2>
+export type Equal<A, B> = (
+  (<T>() => T extends A ? 1 : 2) extends
+    (<T>() => T extends B ? 1 : 2)
       ? true
       : false
->
+)
 
 /*
 ##########################################################################################################################
@@ -50,16 +48,16 @@ export type Equal<A, B> = As<
 */
 
 // Intersect Type
-export type Intersect<U extends unknown> = As<
+export type Intersect<U extends unknown> = (
   (U extends unknown ? (...args: U[]) => void : never) extends (
-    ...args: As<infer A>[]
+    ...args: (infer A)[]
   ) => void
-    ? As<A>
+    ? A
     : never
->
+)
 
 // Join Type
-export type Join<T extends unknown> = As<
+export type Join<T extends unknown> = (
   [Intersect<T>] extends [infer I]
     ? I extends never
       ? never
@@ -69,10 +67,10 @@ export type Join<T extends unknown> = As<
         }
       : never
     : never
->
+)
 
 // And Type
-export type And<T extends unknown> = As<
+export type And<T extends unknown> = (
   [Intersect<T>] extends [infer I]
     ? I extends never
       ? never
@@ -80,7 +78,7 @@ export type And<T extends unknown> = As<
       ? Join<I>
       : I
     : never
->
+)
 
 // Readonly Included Type
 export type ReadonlyInclude<T> = T | Readonly<T>
@@ -110,7 +108,7 @@ export type StringJoinHelper<
 export type StringJoin<
   T extends ReadonlyInclude<unknown[]>,
   D extends StringLike
-> = As<
+> = (
   T extends readonly []
     ? ''
     : T extends readonly [StringLike]
@@ -118,10 +116,10 @@ export type StringJoin<
       : T extends readonly [StringLike, ...infer U]
         ? `${T[0]}${D}${StringJoin<U, D>}`
         : string
->
+)
 
 // String-Split Type
-export type StringSplit<S extends string, D extends StringLike> = As<
+export type StringSplit<S extends string, D extends StringLike> = (
   string extends S
     ? string[]
     : S extends ''
@@ -129,7 +127,7 @@ export type StringSplit<S extends string, D extends StringLike> = As<
       : S extends `${infer T}${D}${infer U}`
         ? [T, ...StringSplit<U, D>]
         : [S]
->
+)
 
 /*
 ##########################################################################################################################
@@ -138,34 +136,34 @@ export type StringSplit<S extends string, D extends StringLike> = As<
 */
 
 // First Item Of Array
-export type ArrayFirst<T extends unknown[]> = As<
+export type ArrayFirst<T extends unknown[]> = (
   T extends [infer F, ...unknown[]] ? F : never
->
+)
 
 // Last Item Of Array
-export type ArrayLast<T extends unknown[]> = As<
+export type ArrayLast<T extends unknown[]> = (
   T extends [...unknown[], infer L] ? L : never
->
+)
 
 // Push Last Item of Array
-export type ArrayPush<T extends unknown[], V> = As<[...T, V]>
+export type ArrayPush<T extends unknown[], V> = [...T, V]
 
 // Push First Item of Array
-export type ArrayPushFirst<T extends unknown[], V> = As<[V, ...T]>
+export type ArrayPushFirst<T extends unknown[], V> = [V, ...T]
 
 // Pop Last Item of Array
-export type ArrayPop<T extends unknown[]> = As<
+export type ArrayPop<T extends unknown[]> = (
   T extends ArrayPush<infer A, unknown>
     ? A
     : never
->
+)
 
 // Pop First Item of Array
-export type ArrayPopFirst<T extends unknown[]> = As<
+export type ArrayPopFirst<T extends unknown[]> = (
   T extends ArrayPushFirst<infer A, unknown>
     ? A
     : never
->
+)
 
 /*
 ##########################################################################################################################
@@ -174,33 +172,42 @@ export type ArrayPopFirst<T extends unknown[]> = As<
 */
 
 // Last Item Of Type Union
-export type LastOf<T> = As<
-  And<T extends unknown ? () => T : never> extends () => infer R ? R : never
->
+export type LastOf<T> = (
+  And<
+    T extends unknown ? () => T : never
+  > extends (() => infer R)
+    ? R
+    : never
+)
 
 // Type-Of Tuple
 export type TupleOf<
   T = never,
   L = LastOf<T>,
-> = As<
+> = (
   [T] extends [never]
     ? []
-    : ArrayPush<TupleOf<Exclude<T, L>>, L>
->
+    : ArrayPush<
+        TupleOf<
+          Exclude<T, L>
+        >,
+        L
+      >
+)
 
 // Array-Index Type
-export type ArrayIndex<K extends KeyOf> = As<
+export type ArrayIndex<K extends KeyOf> = (
   number extends K
     ? never
     : K extends KeyOf<[]>
       ? never
       : K
->
+)
 
 // Object From Array Key-Values
-export type ObjectFromArray<A extends unknown[] | {}> = As<{
+export type ObjectFromArray<A extends unknown[] | {}> = {
   [K in keyof A as ArrayIndex<K>]: A[K]
-}>
+}
 
 /*
 ##########################################################################################################################
@@ -214,23 +221,23 @@ export type Entries = [KeyOf, unknown][]
 // Type-Of Record Entries
 export type EntriesOf<
   T extends {} = Set
-> = As<
+> = (
   TupleOf<
     {
       [K in keyof T]: [K, T[K]]
     }[keyof T]
   >
->
+)
 
 // Type-Of Record Entries
 export type EntriesOfArray<
   S extends unknown[] | {} = []
-> = As<
+> = (
   EntriesOf<ObjectFromArray<S>>
->
+)
 
 // Type-Of Entrie Record
-export type ObjectFromEntries<T extends Entries = Entries> = As<
+export type ObjectFromEntries<T extends Entries = Entries> = (
   And<
     T extends (infer V)[]
       ? V extends [KeyOf, ValueOf]
@@ -238,13 +245,13 @@ export type ObjectFromEntries<T extends Entries = Entries> = As<
         : never
       : never
   >
->
+)
 
 // Append Items To Array By Entries
 export type ArrayAppendEntries<
   T extends Entries,
   A extends unknown[] = [],
-> = As<
+> = (
   T extends []
     ? A
     : ArrayFirst<T> extends infer F
@@ -259,10 +266,10 @@ export type ArrayAppendEntries<
           : never
         : never
       : never
->
+)
 
 // Array Type From Entries
-export type ArrayFromEntries<T extends Entries = []> = As<
+export type ArrayFromEntries<T extends Entries = []> = (
   ObjectFromEntries<T> extends infer O
     ? EntriesOfArray<O> extends infer E
       ? E extends Entries
@@ -270,15 +277,15 @@ export type ArrayFromEntries<T extends Entries = []> = As<
         : never
       : never
     : never
->
+)
 
-export type ArrayFromObject<O extends {}> = As<
+export type ArrayFromObject<O extends {}> = (
   EntriesOfArray<O> extends infer E
     ? E extends Entries
       ? ArrayFromEntries<E>
       : never
     : never
->
+)
 
 /*
 ##########################################################################################################################
@@ -312,7 +319,7 @@ export interface LiteralClass<N extends Types = Types> extends PseudoClass {
 }
 
 // Class Type
-export type Class<N extends string | symbol = string | symbol> = As<
+export type Class<N extends string | symbol = string | symbol> = (
   N extends string
     ? Lowercase<N> extends infer LowerN
       ? LowerN extends Types
@@ -320,7 +327,7 @@ export type Class<N extends string | symbol = string | symbol> = As<
         : PseudoClass<N>
       : never
     : PseudoClass<N>
->
+)
 
 /*
 ##########################################################################################################################
@@ -335,7 +342,7 @@ export type PrimitiveType = string | number | boolean | null | undefined
 export type SuperType = Object | String | Number | Boolean | Array<unknown>
 
 // Super-Construct Type
-export type SuperConstruct<T> = As<
+export type SuperConstruct<T> = (
   T extends string
     ? String
     : T extends number
@@ -347,7 +354,7 @@ export type SuperConstruct<T> = As<
           : T extends {}
             ? Object
             : T
->
+)
 
 // Super-Type Constructor
 export function SuperConstructor<T>(value: T) {
@@ -384,7 +391,7 @@ type CheckPrimaryTypes = CheckBool<
 >
 
 // Set Primary Types List
-export type PrimaryTypesList = As<{
+export interface PrimaryTypesList {
   string: string
   number: number
   bigint: bigint
@@ -393,10 +400,10 @@ export type PrimaryTypesList = As<{
   undefined: undefined
   object: {}
   function: Callable
-}>
+}
 
 // Set Unusual Types List
-export type UnusualTypesList = As<{
+export interface UnusualTypesList {
   never: never
   unknown: unknown
   null: null
@@ -410,15 +417,15 @@ export type UnusualTypesList = As<{
   keyof: KeyOf
   class: Class
   any: unknown
-}>
+}
 
 // Primary Type Symbols
-export type Types = As<PrimaryTypes | UnusualTypes>
+export type Types = PrimaryTypes | UnusualTypes
 
 // Primary Type Generator
-export type PrimaryType<N extends PrimaryTypes = PrimaryTypes> = As<
+export type PrimaryType<N extends PrimaryTypes = PrimaryTypes> = (
   ValueOf<{ [P in PrimaryTypes]: N extends P ? PrimaryTypesList[P] : never }>
->
+)
 
 /*
 ##########################################################################################################################
@@ -427,7 +434,7 @@ export type PrimaryType<N extends PrimaryTypes = PrimaryTypes> = As<
 */
 
 // Type Generator
-export type Type<N extends Types = Types> = As<
+export type Type<N extends Types = Types> = (
   N extends UnusualTypes
     ? ValueOf<
         { [P in UnusualTypes]: N extends P ? UnusualTypesList[P] : never }
@@ -435,13 +442,13 @@ export type Type<N extends Types = Types> = As<
     : N extends PrimaryTypes
     ? PrimaryType<N>
     : never
->
+)
 
 // Type-Name Generator Helper
-type TypeOfIterator<V extends unknown, C extends boolean> = As<
+type TypeOfIterator<V extends unknown, C extends boolean> = (
   ValueOf<
     {
-      [P in PrimaryTypes | UnusualTypes]: As<
+      [P in PrimaryTypes | UnusualTypes]: (
         Type<P> extends infer T
           ? unknown extends T
             ? undefined
@@ -453,25 +460,24 @@ type TypeOfIterator<V extends unknown, C extends boolean> = As<
                 ? P
                 : never
           : never
-      >
+      )
     }
   >
->
+)
 
 // Type-Name Generator
-export type TypeOf<V extends unknown = unknown> = As<
-  As<
-    TypeOfIterator<V, true> extends infer C
+export type TypeOf<V extends unknown = unknown> = (
+  (TypeOfIterator<V, true> extends infer C
       ? C extends undefined
         ? TypeOfIterator<V, false>
         : C
       : never
-  > extends infer T
+  ) extends infer T
     ? T extends string
       ? T
       : never
     : never
->
+)
 
 /*
 ##########################################################################################################################
@@ -480,19 +486,19 @@ export type TypeOf<V extends unknown = unknown> = As<
 */
 
 // Type-Guard Interface
-export type TypeGuardLike<A extends ArgOf = ArgOf> = As<
+export type TypeGuardLike<A extends ArgOf = ArgOf> = (
   Callable<[obj: unknown, ...args: A], boolean>
->
+)
 
 // Generic Type-Guard Type
-export type TypeGuard<T = unknown, A extends ArgOf = ArgOf> = As<
-  (obj: unknown, ...args: A) => obj is T
->
+export interface TypeGuard<T = unknown, A extends ArgOf = ArgOf> {
+  (obj: unknown, ...args: A): obj is T
+}
 
 // Type Of Guarded Type
-export type TypeFromGuard<G extends TypeGuard> = As<
+export type TypeFromGuard<G extends TypeGuard> = (
   G extends TypeGuard<infer T> ? T : never
->
+)
 
 // Is-Type Type
 export type IsType = <T extends Types>(
@@ -501,35 +507,35 @@ export type IsType = <T extends Types>(
 ) => obj is Type<T>
 
 // Guards Object Type
-export type Guards<K extends Types = Types> = As<
-  And<K extends Types ? Has<K, TypeGuard<Type<K>, []>> : never>
->
+export type Guards<T extends Types = Types> = {
+  [K in T]: TypeGuard<Type<K>, []>
+}
 
 // Set-Has Guard
-export type GuardHas<T> = As<
+export type GuardHas<T> = (
   <K extends KeyOf = never>(
     obj: unknown,
     key: K | K[],
   ) => obj is { [P in K]: T }
->
+)
 
 // Set Object Guard
-export type GuardObjectOf<T> = As<
-  <O extends ReadonlyInclude<Set> = never>(
+export type GuardObjectOf<T, H = never> = (
+  <O extends ReadonlyInclude<Set> = {}>(
     obj: unknown
-  ) => obj is And<O & { [K in keyof O]: T }>
->
+  ) => obj is H | And<O | { [K in keyof O]: T }>
+)
 
 // Set Array Guard
-export type GuardArrayOf<T> = As<
-  <A extends ReadonlyInclude<unknown[]> = never>(
+export type GuardArrayOf<T, H = never> = (
+  <A extends ReadonlyInclude<unknown[]> = unknown[]>(
     obj: unknown
-  ) => obj is And<A &
+  ) => obj is H | And<A &
     A extends (readonly unknown[])
       ? { [K in keyof A]: T }
       : T[]
   >
->
+)
 
 /*
 ##########################################################################################################################
@@ -538,37 +544,49 @@ export type GuardArrayOf<T> = As<
 */
 
 // Recursive-Guards Property Type
-export interface ReGuard<H> {
-  or: As<
-    (<T>(guard: TypeGuard<T, []>) => SuperGuard<T | H>)
-    & SuperGuards<Types, H>
-  >
+export interface GuardMethods<H> {
+  in: GuardHas<H>
+  or: (
+    (<T>(guard: TypeGuard<T, []>) => SuperGuard<H | T>)
+    & SuperGuards<H>
+  )
+}
+
+// Recursive-Object-Guards Property Type
+export interface ObjectGuardMethods<H> {
+  of: (<T>(guard: TypeGuard<T, []>) => (GuardObjectOf<T, H> & GuardMethods<{} | H>))
+  & { [K in Types]: GuardObjectOf<Type<K>, H> & GuardMethods<{} | H> }
+}
+
+// Recursive-Array-Guards Property Type
+export interface ArrayGuardMethods<H> {
+  of: (<T>(guard: TypeGuard<T, []>) => (GuardArrayOf<T, H> & GuardMethods<T[] | H>))
+  & { [K in Types]: GuardArrayOf<Type<K>, H> & GuardMethods<Type<K>[] | H> }
 }
 
 // Helper for High-Depth Prevention
-type SuperGuardHelper<H> = As<
-  TypeGuard<H, []> & ReGuard<H>
->
+type SuperGuardHelper<H> = (
+  TypeGuard<H, []> & GuardMethods<H>
+)
+
+// Super-Guards Object Type
+export type SuperGuardsHelper<H = never> = (
+  {
+    [K in Types]: SuperGuard<H | Type<K>> & (
+      K extends 'array'
+        ? ArrayGuardMethods<H>
+        : K extends 'object'
+          ? ObjectGuardMethods<H>
+          : {}
+    )
+  }
+)
 
 // Super-Guard Interface
 export interface SuperGuard<H> extends SuperGuardHelper<H> {}
 
-type HyperGuardHelper<
-  U,
-  H extends unknown[] | {},
-  D = never
-> = As<
-  D | As<
-    H extends unknown[]
-      ? (ValueOf<H> | U)[]
-      : { [K in keyof H]: U }
-  >
->
-
-// Super-Guards Object Type
-export type SuperGuards<K extends Types = Types, H = never> = As<
-  And<K extends Types ? Has<K, SuperGuard<H | Type<K>>> : never>
->
+// Super-Guard Interface
+export interface SuperGuards<H = never> extends SuperGuardsHelper<H> {}
 
 /*
 ##########################################################################################################################
@@ -579,30 +597,30 @@ export type SuperGuards<K extends Types = Types, H = never> = As<
 // Guard-Descriptor Type
 export type GuardDescriptor<
   S extends ReadonlyInclude<unknown[] | Set> = null
-> = As<
+> = (
   S extends null
     ? LoopBack<TypeGuard>
     : {
-      [K in keyof S]: As<
+      [K in keyof S]: (
         S[K] extends (unknown[] | Set)
           ? GuardDescriptor<S[K]>
           : TypeGuard<S[K], []>
-      >
+      )
     }
->
+)
 
 // Type-Of TypeGuard from Descriptor
 export type TypeFromGuardDescriptor<
   D extends GuardDescriptor
-> = As<{
-  [K in keyof D]: As<
+> = {
+  [K in keyof D]: (
     D[K] extends GuardDescriptor
       ? TypeFromGuardDescriptor<D[K]>
       : D[K] extends TypeGuard
         ? TypeFromGuard<D[K]>
         : never
-  >
-}>
+  )
+}
 
 /*
 ##########################################################################################################################
@@ -628,18 +646,18 @@ type KeyOfPrimary = keyof any
 // Type-Of Record Key
 export type KeyOf<
   T extends ReadonlyInclude<unknown[] | Set> = (unknown[] | Set)
-> = As<
+> = (
   T extends {
     [P in infer K]: unknown
   }
     ? K & keyof T
     : never
->
+)
 
 // Type-Of Record Value
 export type ValueOf<
   T extends ReadonlyInclude<unknown[] | Set> = (unknown[] | Set)
-> = As<
+> = (
   T extends unknown[]
     ? T extends (infer V)[]
       ? V
@@ -649,7 +667,7 @@ export type ValueOf<
     }
       ? V
       : never
->
+)
 
 /*
 ##########################################################################################################################
@@ -658,22 +676,22 @@ export type ValueOf<
 */
 
 // Type-Of Indexable Record
-export type StringSet<T = unknown> = As<{ [x: string]: T }>
-export type NumberSet<T = unknown> = As<{ [x: number]: T }>
-export type Set<T = unknown> = As<{
+export interface StringSet<T = unknown> { [x: string]: T }
+export interface NumberSet<T = unknown> { [x: number]: T }
+export interface Set<T = unknown> {
   [x: string]: T
   [x: number]: T
   [x: symbol]: T
-}>
+}
 
 // Type-Of Has
 export type Has<
   K extends KeyOf,
   T = unknown,
   O extends {} = {}
-> = As<
+> = (
   And<O & { [P in K]: T }>
->
+)
 
 /*
 ##########################################################################################################################
@@ -682,20 +700,15 @@ export type Has<
 */
 
 // Type-Of Function
-export type Callable<
+export interface Callable<
   A extends unknown[] = unknown[],
   R = unknown
-> = As<(...args: A) => R>
+> { (...args: A): R }
 
 // Type-Of Function Args
-export type ArgOf<F extends Callable = Callable> = As<
+export type ArgOf<F extends Callable = Callable> = (
   F extends Callable<infer A> ? A : never
->
-
-// Type-Of Function Return
-export type ReturnOf<
-  F extends Callable = Callable
-> = As<ReturnType<F>>
+)
 
 /*
 ##########################################################################################################################
@@ -704,47 +717,45 @@ export type ReturnOf<
 */
 
 // Async Function type
-export type Async<
+export interface Async<
   A extends ArgOf = ArgOf,
   R = unknown
-> = As<
-  Callable<A, PromiseLike<R>>
->
+> extends Callable<A, PromiseLike<R>> {}
 
 // Return Type of Promise
-export type PromiseThen<T extends PromiseLike<unknown>> = As<
+export type PromiseThen<T extends PromiseLike<unknown>> = (
   T extends PromiseLike<infer R> ? R : never
->
+)
 
 // Return Type of Async
-export type AsyncThen<T extends Async> = As<
-  PromiseThen<ReturnOf<T>>
->
+export type AsyncThen<T extends Async> = (
+  PromiseThen<ReturnType<T>>
+)
 
 // Return Type of Promise or Async
-export type Then<T> = As<
+export type Then<T> = (
   T extends PromiseLike<unknown>
     ? PromiseThen<T>
     : T extends Async
       ? AsyncThen<T>
       : never
->
+)
 
 // Return Type of Promise
-export type PromiseAwait<T> = As<
+export type PromiseAwait<T> = (
   T extends PromiseLike<unknown>
     ? PromiseAwait<PromiseThen<T>>
     : T
->
+)
 
 // Return Type of Await Promise or Async
-export type Await<T> = As<
+export type Await<T> = (
   T extends PromiseLike<unknown>
     ? PromiseAwait<T>
     : T extends Async
-      ? PromiseAwait<ReturnOf<T>>
+      ? PromiseAwait<ReturnType<T>>
       : T
->
+)
 
 /*
 ##########################################################################################################################

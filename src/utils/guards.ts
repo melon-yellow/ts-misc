@@ -36,7 +36,7 @@ import type {
 // General Make Type-Guard
 export function extend<T, O = unknown>(
   obj: unknown
-): obj is As<T extends {} ? (O extends {} ? And<O & T> : O & T) : O & T> {
+): obj is (T extends {} ? (O extends {} ? And<O & T> : O & T) : O & T) {
   return true
 }
 
@@ -154,11 +154,13 @@ export function isType<T extends Types>(
 
 // Type-Guard Proxy-Function Generator
 const guardProxy = <
+  J,
   G extends TypeGuard<unknown, []>
 >(
   guard: G,
-  join: (upstr: TypeGuard<unknown, []>) => TypeGuard<unknown, []>
-) => (new Proxy(guard, {
+  join: (upstr: TypeGuard<unknown, []>) => TypeGuard<J, []>
+) => (
+  new Proxy(guard, {
     apply (target, _thisArg, args: [unknown]) {
       if (args.length != 1) throw new Error('invalid arguments')
       const [obj] = args
@@ -175,12 +177,16 @@ const guardProxy = <
         {} as SuperGuards,
         guardProxyHandler(target)
       )
+      // In Clause
+      if (p === 'in') return new Proxy(
+        {} as SuperGuards,
+        guardProxyHandler(target)
+      )
       // Else
       return target[p]
     }
-  }) as G & SuperGuard<
-    TypeFromGuard<G>
-  >)
+  }) as unknown as SuperGuard<J>
+)
 
 // Type-Guards Proxy-Handler Generator
 const guardProxyHandler = <T>(
@@ -196,9 +202,9 @@ const guardProxyHandler = <T>(
     const [guard] = args
     if (!guards.function(guard)) throw new Error('invalid arguments')
     // Return Recursive Type-Guard Proxy
-    return guardProxy(guard, (grd: typeof guard) => {
-      return (o => dnstr(o) || grd(o)) as TypeGuard<U | T, []>
-    })
+    type UPS = TypeGuard<U | T, []>
+    const join = (grd: typeof guard) => (o => dnstr(o) || grd(o)) as UPS
+    return guardProxy(guard, join)
   },
   // Or Get
   get<P extends string | symbol>(
@@ -207,12 +213,11 @@ const guardProxyHandler = <T>(
     // Check if property exists
     if (!guards.typeof(p)) throw new Error(`key "${p}" not in SuperGuards`)
     // Set Recursive Type-Guard
-    type UPS = P extends Types ? TypeGuard<Type<P> | T, []> : never
     const guard = guards[p] as P extends Types ? SuperGuard<Type<P>> : never
     // Return Recursive Type-Guard Proxy
-    return guardProxy(guard, (grd: typeof guard) => {
-      return (o => dnstr(o) || grd(o)) as UPS
-    })
+    type UPS = P extends Types ? SuperGuard<Type<P> | T> : never
+    const join = (grd: typeof guard) => (o => dnstr(o) || grd(o)) as UPS
+    return guardProxy(guard, join)
   }
 })
 
@@ -321,6 +326,9 @@ export const is = new Proxy(superTarget as Is, {
     )
   }
 })
+
+const o = {}
+is.string.or.array.or(is.string.or.number).or.number.in(o, 'test')
 
 /*
 ##########################################################################################################################
