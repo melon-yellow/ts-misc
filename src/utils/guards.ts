@@ -66,7 +66,7 @@ export function typeOf(obj: unknown): string {
 */
 
 // Check Primary Types
-function _setGuard<N extends Types>(
+function setGuard<N extends Types>(
   typeName: N,
   constructor: Callable = null
 ): TypeGuard<Type<N>, []> {
@@ -87,14 +87,14 @@ function _setGuard<N extends Types>(
 
 // Primary Type-Guard Object
 export const primaryGuards: Guards<PrimaryTypes> = {
-  undefined: _setGuard('undefined'),
-  string: _setGuard('string', String),
-  number: _setGuard('number', Number),
-  bigint: _setGuard('bigint', BigInt),
-  symbol: _setGuard('symbol', Symbol),
-  object: (o => (o && _setGuard('object', Object)(o) && true)) as TypeGuard<{}>,
-  boolean: _setGuard('boolean', Boolean),
-  function: _setGuard('function', Function)
+  undefined: setGuard('undefined'),
+  string: setGuard('string', String),
+  number: setGuard('number', Number),
+  bigint: setGuard('bigint', BigInt),
+  symbol: setGuard('symbol', Symbol),
+  object: (o => (o && setGuard('object', Object)(o) && true)) as TypeGuard<{}>,
+  boolean: setGuard('boolean', Boolean),
+  function: setGuard('function', Function)
 }
 
 // Unusual Type-Guard Object
