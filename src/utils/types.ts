@@ -547,14 +547,14 @@ export type GuardHas<T> = (
 
 // Set Object Guard
 export type GuardObjectOf<T, H = never> = (
-  <O extends ReadonlyInclude<Set> = {}>(
+  <O extends Set = {}>(
     obj: unknown
   ) => obj is H | And<O | { [K in keyof O]: T }>
 )
 
 // Set Array Guard
 export type GuardArrayOf<T, H = never> = (
-  <A extends ReadonlyInclude<unknown[]> = unknown[]>(
+  <A extends unknown[] = unknown[]>(
     obj: unknown
   ) => obj is H | And<A &
     A extends (readonly unknown[])

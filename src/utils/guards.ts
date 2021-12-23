@@ -157,31 +157,86 @@ export function isType<T extends Types>(
 // General Type-Guard Target
 const superTarget = (() => null) as unknown
 
+/*
+##########################################################################################################################
+#                                                       MISCELLANEOUS                                                    #
+##########################################################################################################################
+*/
+
+// Helper Types
+type IterFlag = 'array' | 'object'
+type IterSel<I extends IterFlag, AO, A, O, E> = (
+  I extends IterFlag
+    ? AO
+    : I extends 'array'
+      ? A
+      : I extends 'object'
+        ? O
+        : E
+)
+
+// Check Set Guard Flag
+const checkSetFlag = (flag: string): flag is IterFlag => ['array', 'object'].includes(flag)
+
 // Type-Guard Proxy-Function Generator
-const superGuardGenerator = <D, G, I extends 'array' | 'object' = null>(
+const upstreamGuardGenerator = <D, G, I extends IterFlag = null>(
   dnstr: TypeGuard<D, []> | null,
   guard: TypeGuard<G, []>,
   iter?: I
-) => {
-  // Join Downstream Guard
+): IterSel<
+  I,
+  GuardArrayOf<G, D> |
+  GuardObjectOf<G, D>,
+  GuardArrayOf<G, D>,
+  GuardObjectOf<G, D>,
+  TypeGuard<D | G, []>
+> => {
+  type IG = IterSel<
+    I,
+    GuardArrayOf<G, D> |
+    GuardObjectOf<G, D>,
+    GuardArrayOf<G, D>,
+    GuardObjectOf<G, D>,
+    never
+  >
+  // Set Downstream Guard
   const prstr = (o => dnstr ? dnstr(o) : false) as TypeGuard<D, []>
   // Set Upstream Guard
-  const upstr = (o => prstr(o) || guard(o)) as TypeGuard<D | G, []>
-  // Set Iterator Guard
-  const iterator = (o => prstr(o) || Object.values(o).every(guard)) as (
-    I extends 'array'
-      ? GuardArrayOf<G, D>
-      : I extends 'object'
-        ? GuardObjectOf<G, D>
-        : never
-  )
+  const upstr = (
+    checkSetFlag(iter)
+      ? (o => prstr(o) || Object.values(o).every(guard)) as unknown as IG
+      : (o => prstr(o) || guard(o)) as TypeGuard<D | G, []>
+  ) as IterSel<
+    I,
+    GuardArrayOf<G, D> |
+    GuardObjectOf<G, D>,
+    GuardArrayOf<G, D>,
+    GuardObjectOf<G, D>,
+    TypeGuard<D | G, []>
+  >
+  // Return Upstream
+  return upstr
+}
+
+/*
+##########################################################################################################################
+#                                                       MISCELLANEOUS                                                    #
+##########################################################################################################################
+*/
+
+// Type-Guard Proxy-Function Generator
+const superGuardGenerator = <
+  G extends TypeGuard<TG, []>,
+  I extends IterFlag,
+  TG
+>(guard: G, iter?: I) => {
   // Return Proxy
-  return new Proxy(upstr, {
+  return new Proxy(guard, {
     apply (
       target,
       _thisArg,
       args: [unknown]
-    ): args is [D | G] {
+    ): args is [TG] {
       if (args.length != 1) throw new Error('invalid arguments')
       const [obj] = args
       return target(obj)
@@ -193,27 +248,85 @@ const superGuardGenerator = <D, G, I extends 'array' | 'object' = null>(
       )
       // In Clause
       if (p === 'in') return new Proxy(
-        superTarget as GuardHas<D | G>,
+        superTarget as GuardHas<TG>,
         guardHasProxyHandler(target)
       )
       // Or Clause
       if (p === 'or') return new Proxy(
-        superTarget as SuperGuards<D | G>,
-        guardProxyHandler(target)
+        superTarget as SuperGuards<TG>,
+        guardProxyHandler(target, null)
       )
       // Of Clause
-      if (p === 'of' && ['array', 'object'].includes(iter)) {
-        type GRD = SuperGuards['array']['of'] | SuperGuards['object']['of']
+      if (p === 'of' && checkSetFlag(iter)) {
+        // Return Proxy
         return new Proxy(
-          superTarget as GRD,
-          guardProxyHandler(iterator) as unknown as ProxyHandler<GRD>
+          superTarget as SuperGuards<TG>[I]['of'],
+          guardProxyHandler(target, iter)
         )
       }
       // Else
       return target[p]
     }
-  }) as unknown as SuperGuard<D | G>
+  }) as unknown as SuperGuard<G>
 }
+
+/*
+##########################################################################################################################
+#                                                       MISCELLANEOUS                                                    #
+##########################################################################################################################
+*/
+
+// Proxy-Handler Helper Type
+type UPS<P, H> = P extends Types ? SuperGuard<H | Type<P>> : never
+
+// Type-Guards Proxy-Handler Generator
+const guardProxyHandler = <H, I extends IterFlag>(
+  dnstr: TypeGuard<H, []> | null,
+  iter?: I
+): ProxyHandler<
+  IterSel<
+    I,
+    SuperGuards<H>['array']['of'] |
+    SuperGuards<H>['object']['of'],
+    SuperGuards<H>['array']['of'],
+    SuperGuards<H>['object']['of'],
+    SuperGuards<H>
+  >
+> => ({
+  // Or Call
+  apply<U>(
+    _target,
+    _thisArg,
+    args: [TypeGuard<U, []>]
+  ) {
+    if (args.length != 1) throw new Error('invalid arguments')
+    const [guard] = args
+    if (!guards.function(guard)) throw new Error('invalid arguments')
+    // Generate Recursive Type-Guard Proxy
+    const upstr = upstreamGuardGenerator(dnstr, guard, iter)
+    return superGuardGenerator(upstr)
+  },
+  // Or Get
+  get<P extends string | symbol>(
+    _target, p: P
+  ): UPS<P, H> {
+    // Check if property exists
+    if (!guards.typeof(p)) throw new Error(`key "${p}" not in SuperGuards`)
+    // Get Type-Guard
+    const guard = guards[p] as UPS<P, never>
+    // Check for Array Or Object
+    const flag = checkSetFlag(p) ? p : null
+    // Generate Recursive Type-Guard Proxy
+    const upstr = upstreamGuardGenerator(dnstr, guard, iter)
+    return superGuardGenerator(upstr, flag) as UPS<P, H>
+  },
+  // General Methods
+  set (_target, _p, _value) { return null },
+  deleteProperty (_target, _p) { return null },
+  defineProperty (_target, _p, _attr) { return null },
+  ownKeys (_target) { return Object.keys(guards) },
+  has(_target, p) { return p in guards }
+})
 
 /*
 ##########################################################################################################################
@@ -232,57 +345,11 @@ const guardHasProxyHandler = <H>(
     args: [unknown, K]
   ): args is [{ [P in K]: H }, K] {
     if (args.length != 2) throw new Error('invalid arguments')
-    const [obj, key] = args
     if (guard && !guards.function(guard)) throw new Error('invalid arguments')
+    const [obj, key] = args
     // Check For Key and Type
     return has(obj, key, guard)
   },
-})
-
-/*
-##########################################################################################################################
-#                                                       MISCELLANEOUS                                                    #
-##########################################################################################################################
-*/
-
-// Proxy-Handler Helper Type
-type UPS<P, H> = P extends Types ? SuperGuard<H | Type<P>> : never
-
-// Type-Guards Proxy-Handler Generator
-const guardProxyHandler = <H>(
-  dnstr: TypeGuard<H, []> | null
-): ProxyHandler<SuperGuards<H>> => ({
-  // Or Call
-  apply<U>(
-    _target,
-    _thisArg,
-    args: [TypeGuard<U, []>]
-  ): SuperGuard<H | U> {
-    if (args.length != 1) throw new Error('invalid arguments')
-    const [guard] = args
-    if (!guards.function(guard)) throw new Error('invalid arguments')
-    // Generate Recursive Type-Guard Proxy
-    return superGuardGenerator(dnstr, guard)
-  },
-  // Or Get
-  get<P extends string | symbol>(
-    _target, p: P
-  ): UPS<P, H> {
-    // Check if property exists
-    if (!guards.typeof(p)) throw new Error(`key "${p}" not in SuperGuards`)
-    // Get Type-Guard
-    let guard = guards[p] as UPS<P, never>
-    // Check for Array Or Object
-    const iter = (['array', 'object'].includes(p) ? p : null) as ('array' | 'object' | null)
-    // Generate Recursive Type-Guard Proxy
-    return superGuardGenerator(dnstr, guard, iter) as UPS<P, H>
-  },
-  // General Methods
-  set (_target, _p, _value) { return null },
-  deleteProperty (_target, _p) { return null },
-  defineProperty (_target, _p, _attr) { return null },
-  ownKeys (_target) { return Object.keys(guards) },
-  has(_target, p) { return p in guards }
 })
 
 /*
@@ -316,7 +383,7 @@ export function has<
   K extends KeyOf = KeyOf,
   T = unknown
 >(
-  obj: {},
+  obj: unknown,
   key: K | K[],
   guard?: TypeGuard<T, []>
 ): obj is Has<K, T> {
@@ -325,11 +392,11 @@ export function has<
   // Set Check Function
   const checkType = <K extends KeyOf>(
     o: unknown, k: K
-  ): o is Has<K, TypeOf<T>> => {
+  ): o is Has<K, T> => {
     return guard ? guard(o[k]) : true
   }
   // Perform Key Check
-  const checkKey = (o: {}, k: KeyOf): o is Has<K, TypeOf<T>> => {
+  const checkKey = (o: {}, k: KeyOf): o is Has<K, T> => {
     if (o[k] === undefined) return false
     if (k in o) return checkType(o, k)
     if (Object.prototype.hasOwnProperty.call(o, k)) return checkType(o, k)
