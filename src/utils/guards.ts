@@ -366,6 +366,20 @@ export const superGuards = new Proxy(
 
 // General Type-Guard Proxy
 export const is = new Proxy(superGuards as Is, {
+  // Get Properties
+  get (target, p) {
+    // Check Target Type
+    if (!guards.function(target)) throw new Error(
+      'invalid target at SuperGuard proxy'
+    )
+    // In Clause
+    if (p === 'in') return new Proxy(
+      superTarget as GuardHas<unknown>,
+      guardHasProxyHandler(null)
+    )
+    // Else
+    return target[p]
+  },
   // Property Check
   has(_target, p) { return (p in guards ||
     (guards.string(p) && ['in'].includes(p))
