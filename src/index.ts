@@ -7,7 +7,7 @@
 #                                                   Author: Anthony                                                      #
 #                             ---------------- ------ -- NodeJS -- ------ ----------------                               #
 #                                                * Under Development *                                                   #
-#                                      https://github.com/anthony-freitas/ts-misc                                        #
+#                                       https://github.com/melon-yellow/ts-misc                                          #
 #                                                                                                                        #
 ##########################################################################################################################
 #                                                      MAIN MODULE                                                       #
