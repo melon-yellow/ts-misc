@@ -94,7 +94,7 @@ export const primaryGuards: Guards<PrimaryTypes> = {
   number: setGuard('number', Number),
   bigint: setGuard('bigint', BigInt),
   symbol: setGuard('symbol', Symbol),
-  object: (o => (o && setGuard('object', Object)(o) && true)) as TypeGuard<{}>,
+  object: (o => (setGuard('object', Object)(o) && o)) as TypeGuard<{}>,
   boolean: setGuard('boolean', Boolean),
   function: setGuard('function', Function)
 }
@@ -380,7 +380,7 @@ export const is = new Proxy(superGuards as Is, {
 
 // Has-Property Type-Guard
 export function has<
-  K extends KeyOf = KeyOf,
+  K extends KeyOf,
   T = unknown
 >(
   obj: unknown,
@@ -390,9 +390,9 @@ export function has<
   // Check Object
   if (!guards.object(obj)) return false
   // Set Check Function
-  const checkType = <K extends KeyOf>(
-    o: unknown, k: K
-  ): o is Has<K, T> => {
+  const checkType = <P extends KeyOf>(
+    o: unknown, k: P
+  ): o is Has<P, T> => {
     return guard ? guard(o[k]) : true
   }
   // Perform Key Check
