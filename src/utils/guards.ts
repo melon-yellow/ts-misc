@@ -243,9 +243,7 @@ const superGuardGenerator = <
     },
     get (target, p) {
       // Check Target Type
-      if (!guards.function(target)) throw new Error(
-        'invalid target at SuperGuard proxy'
-      )
+      if (!guards.function(target)) return null
       // In Clause
       if (p === 'in') return new Proxy(
         superTarget as GuardHas<TG>,
@@ -311,7 +309,7 @@ const guardProxyHandler = <H, I extends IterFlag>(
     _target, p: P
   ): UPS<P, H> {
     // Check if property exists
-    if (!guards.typeof(p)) throw new Error(`key "${p}" not in SuperGuards`)
+    if (!guards.typeof(p)) return null
     // Get Type-Guard
     const guard = guards[p] as UPS<P, never>
     // Check for Array Or Object
