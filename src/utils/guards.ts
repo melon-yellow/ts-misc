@@ -200,7 +200,7 @@ const upstreamGuardGenerator = <D, G, I extends IterFlag = null>(
     never
   >
   // Set Downstream Guard
-  const prstr = (o => dnstr ? dnstr(o) : false) as TypeGuard<D, []>
+  const prstr = (guards.function(dnstr) ? dnstr : o => false) as TypeGuard<D, []>
   // Set Upstream Guard
   const upstr = (
     checkSetFlag(iter)
@@ -227,9 +227,11 @@ const upstreamGuardGenerator = <D, G, I extends IterFlag = null>(
 // Type-Guard Proxy-Function Generator
 const superGuardGenerator = <
   G extends TypeGuard<TG, []>,
-  I extends IterFlag,
-  TG
->(guard: G, iter?: I) => {
+  D extends TypeGuard<TD, []>,
+  TG,
+  TD,
+  I extends IterFlag
+>(guard: G, dnstr: D, iter?: I) => {
   // Return Proxy
   return new Proxy(guard, {
     apply (
@@ -258,8 +260,8 @@ const superGuardGenerator = <
       if (p === 'of' && checkSetFlag(iter)) {
         // Return Proxy
         return new Proxy(
-          superTarget as SuperGuards<TG>[I]['of'],
-          guardProxyHandler(target, iter)
+          superTarget as SuperGuards<TD>[I]['of'],
+          guardProxyHandler(dnstr, iter)
         )
       }
       // Else
@@ -302,7 +304,7 @@ const guardProxyHandler = <H, I extends IterFlag>(
     if (!guards.function(guard)) throw new Error('invalid arguments')
     // Generate Recursive Type-Guard Proxy
     const upstr = upstreamGuardGenerator(dnstr, guard, iter)
-    return superGuardGenerator(upstr)
+    return superGuardGenerator(upstr, dnstr, null)
   },
   // Or Get
   get<P extends string | symbol>(
@@ -316,7 +318,7 @@ const guardProxyHandler = <H, I extends IterFlag>(
     const flag = checkSetFlag(p) ? p : null
     // Generate Recursive Type-Guard Proxy
     const upstr = upstreamGuardGenerator(dnstr, guard, iter)
-    return superGuardGenerator(upstr, flag) as UPS<P, H>
+    return superGuardGenerator(upstr, dnstr, flag) as UPS<P, H>
   },
   // General Methods
   set (_target, _p, _value) { return null },
